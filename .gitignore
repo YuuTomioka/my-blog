@@ -1,0 +1,11 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Obsidian vault metadata and trash
+vault/.obsidian/
+vault/.trash/
+
+# Node artifacts (repo-wide helper)
+node_modules/
+
