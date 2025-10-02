@@ -13,14 +13,14 @@ function parseKey(key: string) {
     return { year: m[1], month: m[2], day: m[3], slug: m[4] };
 }
 
-/** 記事リポジトリ実装 */
-export const postRepositoryImpl: PostRepository = {
+/** 記事リポジトリ実装(s3) */
+export class S3PostRepository implements PostRepository {
     async listMeta(): Promise<PostMeta[]> {
         // TODO: Implement actual logic to fetch post metadata
         return [];
-    },
+    }
     async getBySlug(slug: string): Promise<S3PostDto | null> {
         // TODO: Implement actual logic to fetch post by slug
         return null;
-    },
+    }
 }
