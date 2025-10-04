@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { makePostUsecase } from "@/lib/application/post/usecase";
 import { makePostRepository } from "@/lib/server/gateway/post/makeRepository";
+import { MarkdownRenderer } from "@/component/MarkdownRenderer";
 
 type Params = { slug: string };
 
@@ -19,7 +20,7 @@ export default async function Page({
   if (!post) return notFound();
 
   return (
-    <article className="prose mx-auto py-10">
+    <article className="mx-auto py-10">
       <header className="mb-6">
         <h1 className="text-3xl font-bold">{post.title}</h1>
         {post.date && (
@@ -37,7 +38,7 @@ export default async function Page({
           </ul>
         )}
       </header>
-      <section dangerouslySetInnerHTML={{ __html: post.html }} />
+      <MarkdownRenderer html={post.html} />
     </article>
   );
 }
