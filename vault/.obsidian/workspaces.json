@@ -1,0 +1,265 @@
+{
+  "workspaces": {
+    "default": {
+      "main": {
+        "id": "4f2dedffcb7babec",
+        "type": "split",
+        "children": [
+          {
+            "id": "03bb6189dcf7bedc",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "3fc6bb0e8e5a084a",
+                "type": "leaf",
+                "pinned": true,
+                "state": {
+                  "type": "graph",
+                  "state": {},
+                  "pinned": true,
+                  "icon": "lucide-git-fork",
+                  "title": "グラフビュー"
+                }
+              },
+              {
+                "id": "ddbbfb04f1eb3651",
+                "type": "leaf",
+                "pinned": true,
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "02_view/10_dashboard.md",
+                    "mode": "preview",
+                    "source": false
+                  },
+                  "pinned": true,
+                  "icon": "lucide-file",
+                  "title": "10_dashboard"
+                }
+              }
+            ],
+            "currentTab": 1
+          }
+        ],
+        "direction": "vertical"
+      },
+      "left": {
+        "id": "9b8f7349c4be646b",
+        "type": "split",
+        "children": [
+          {
+            "id": "fb81e9a5bb533dc6",
+            "type": "tabs",
+            "dimension": 32.91326908821349,
+            "children": [
+              {
+                "id": "f2a3e2439cb34eab",
+                "type": "leaf",
+                "state": {
+                  "type": "file-explorer",
+                  "state": {
+                    "sortOrder": "alphabetical",
+                    "autoReveal": false
+                  },
+                  "icon": "lucide-folder-closed",
+                  "title": "ファイルエクスプローラ"
+                }
+              },
+              {
+                "id": "d3a6af74e6ad9524",
+                "type": "leaf",
+                "state": {
+                  "type": "localgraph",
+                  "state": {
+                    "file": "02_view/10_dashboard.md",
+                    "options": {
+                      "collapse-filter": true,
+                      "search": "",
+                      "localJumps": 5,
+                      "localBacklinks": true,
+                      "localForelinks": true,
+                      "localInterlinks": false,
+                      "showTags": true,
+                      "showAttachments": true,
+                      "hideUnresolved": false,
+                      "collapse-color-groups": false,
+                      "colorGroups": [],
+                      "collapse-display": true,
+                      "showArrow": true,
+                      "textFadeMultiplier": 0,
+                      "nodeSizeMultiplier": 1,
+                      "lineSizeMultiplier": 1,
+                      "collapse-forces": true,
+                      "centerStrength": 0.518713248970312,
+                      "repelStrength": 10,
+                      "linkStrength": 1,
+                      "linkDistance": 250,
+                      "scale": 0.7132754626224421,
+                      "close": true
+                    }
+                  },
+                  "icon": "lucide-git-fork",
+                  "title": "10_dashboardのグラフ"
+                }
+              }
+            ],
+            "currentTab": 1
+          },
+          {
+            "id": "997996fb5d4476c1",
+            "type": "tabs",
+            "dimension": 67.0867309117865,
+            "children": [
+              {
+                "id": "3c709899cee1aaf8",
+                "type": "leaf",
+                "state": {
+                  "type": "smart-connections-view",
+                  "state": {},
+                  "icon": "smart-connections",
+                  "title": "Connections"
+                }
+              },
+              {
+                "id": "714248805c12faf9",
+                "type": "leaf",
+                "state": {
+                  "type": "tagfolder-view",
+                  "state": {},
+                  "icon": "stacked-levels",
+                  "title": "Tag Folder"
+                }
+              },
+              {
+                "id": "b08492ae37277c78",
+                "type": "leaf",
+                "state": {
+                  "type": "tagfolder-link-view",
+                  "state": {},
+                  "icon": "stacked-levels",
+                  "title": "Link Folder"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal",
+        "width": 345.5
+      },
+      "right": {
+        "id": "3b8c3cad91b8fd5d",
+        "type": "split",
+        "children": [
+          {
+            "id": "2f07cd6754ee3e10",
+            "type": "tabs",
+            "dimension": 28.735632183908045,
+            "children": [
+              {
+                "id": "020433e299f4cbda",
+                "type": "leaf",
+                "state": {
+                  "type": "search",
+                  "state": {
+                    "query": "",
+                    "matchingCase": false,
+                    "explainSearch": false,
+                    "collapseAll": false,
+                    "extraContext": false,
+                    "sortOrder": "alphabetical"
+                  },
+                  "icon": "lucide-search",
+                  "title": "検索"
+                }
+              },
+              {
+                "id": "d3ceec7114c16dee",
+                "type": "leaf",
+                "state": {
+                  "type": "outgoing-link",
+                  "state": {
+                    "linksCollapsed": false,
+                    "unlinkedCollapsed": false
+                  },
+                  "icon": "links-going-out",
+                  "title": "アウトゴーイングリンク"
+                }
+              },
+              {
+                "id": "1d9032e6d9b31efb",
+                "type": "leaf",
+                "state": {
+                  "type": "backlink",
+                  "state": {
+                    "collapseAll": false,
+                    "extraContext": false,
+                    "sortOrder": "alphabetical",
+                    "showSearch": false,
+                    "searchQuery": "",
+                    "backlinkCollapsed": false,
+                    "unlinkedCollapsed": false
+                  },
+                  "icon": "links-coming-in",
+                  "title": "バックリンク"
+                }
+              },
+              {
+                "id": "0241c411ee7ba555",
+                "type": "leaf",
+                "state": {
+                  "type": "outline",
+                  "state": {
+                    "file": "02_view/10_dashboard.md",
+                    "followCursor": false,
+                    "showSearch": false,
+                    "searchQuery": ""
+                  },
+                  "icon": "lucide-list",
+                  "title": "10_dashboardのアウトライン"
+                }
+              }
+            ]
+          },
+          {
+            "id": "22141a08ca8d8176",
+            "type": "tabs",
+            "dimension": 71.26436781609196,
+            "children": [
+              {
+                "id": "d3f2335f889bada4",
+                "type": "leaf",
+                "state": {
+                  "type": "git-view",
+                  "state": {},
+                  "icon": "git-pull-request",
+                  "title": "Source Control"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal",
+        "width": 390.5
+      },
+      "left-ribbon": {
+        "hiddenItems": {
+          "bases:Create new base": true,
+          "workspaces:ワークスペースレイアウトを管理": true,
+          "switcher:クイックスイッチャーを開く": true,
+          "graph:グラフビューを開く": true,
+          "canvas:新規キャンバスを作成": true,
+          "command-palette:コマンドパレットを開く": false,
+          "templater-obsidian:Templater": true,
+          "obsidian-git:Open Git source control": true,
+          "float-search:Search obsidian in modal view": false,
+          "smart-connections:Open: Smart Chat": false,
+          "smart-connections:Smart Connections: Open connections view": true,
+          "smart-connections:Smart Connections: Open random connection": true
+        }
+      },
+      "active": "ddbbfb04f1eb3651",
+      "mtime": "2025-08-23T19:07:54+09:00"
+    }
+  },
+  "active": "default"
+}

@@ -1,0 +1,19 @@
+{
+  "palette": {
+    "seed": 0,
+    "selected": "custom",
+    "custom": "fce8e8-e8fcfc-eefce8-f3e8fc-fcf7e8-e8eefc-e8fcf3-fce8f7-fcf0e8-e8f7fc-edfce8-f7e8fc-fcfce8-e8edfc-e8fcf7-fce8ed"
+  },
+  "mixColors": true,
+  "transition": true,
+  "accessibility": {
+    "highTextContrast": false
+  },
+  "knownTags": {
+    "文献": 1,
+    "sample": 2,
+    "dashboard": 3,
+    "task": 4
+  },
+  "_version": 3
+}

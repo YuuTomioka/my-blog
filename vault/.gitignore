@@ -1,0 +1,20 @@
+# OR only to exclude workspace cache
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Exclude Untitled Notes
+Untitled*
+無題のファイル*
+# Exclude "bad" names
+null*
+
+# Add below lines to exclude OS settings and caches
+.trash/
+.DS_Store
+
+# Exclude Obsidian plugin settings and caches
+# Various Complements
+.obsidian/plugins/various-complements/histories.json
+# Smart Connections
+.smart-env/*
+!.smart-env/smart_env.json
