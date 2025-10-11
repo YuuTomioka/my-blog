@@ -6,37 +6,45 @@ import SidebarContent from "./SidebarContent";
 
 /** サイドバー本体コンポーネント */
 export default function Sidebar() {
-    const { open, setOpen } = useSidebar();
+  const { mobileOpen, setMobileOpen, desktopCollapsed } = useSidebar();
 
-    return (
-        <>
-            {/* 左固定のサイドバー */}
-            <aside
-                className={[
-                    "fixed inset-y-0 left-0 z-50 w-64 transform border-r bg-white p-4 transition-transform",
-                    "md:translate-x-0",
-                    open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-                ].join(" ")}
-                aria-label="Sidebar"
-            >
-                <SidebarContent />
-            </aside>
+  // 幅（PC）
+  const desktopWidth = desktopCollapsed ? "md:w-20" : "md:w-64";
 
-            {/* モバイル時のオーバーレイ */}
-            {open && (
-                <button
-                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
-                    aria-label="Close sidebar overlay"
-                    onClick={() => setOpen(false)}
-                />
-            )}
-        </>
-    );
+  return (
+    <>
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 z-50 w-64 transform border-r border-slate-200 bg-white/95 p-3 text-slate-700 shadow-sm backdrop-blur transition-[transform,width] duration-200 dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200",
+          // SP: ドロワー
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          // PC: 常時表示 + 幅切替
+          "md:translate-x-0",
+          desktopWidth,
+        ].join(" ")}
+        aria-label="Sidebar"
+      >
+        <SidebarContent collapsed={desktopCollapsed} />
+      </aside>
+
+      {/* モバイル時のオーバーレイ */}
+      {mobileOpen && (
+        <button
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          aria-label="Close sidebar overlay"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+    </>
+  );
 }
 
-/** コンテンツ側の左パディングを与えるラッパー（サイドバー幅分） */
+/** サイドバーに合わせてメインコンテンツのパディングを調整するコンポーネント */
 export function SidebarMain({ children, className }: PropsWithChildren<{ className?: string }>) {
-    // PC: 常時表示なので常にパディング、SP: 開閉に合わせず 0（オーバーレイで被せる挙動）
-    const cls = ["md:pl-64", className].filter(Boolean).join(" ");
-    return <main className={cls}>{children}</main>;
+  const { desktopCollapsed } = useSidebar();
+  const pad = desktopCollapsed ? "md:pl-20" : "md:pl-64";
+  const cls = ["min-h-screen transition-[padding] duration-200", pad, className]
+    .filter(Boolean)
+    .join(" ");
+  return <main className={cls}>{children}</main>;
 }

@@ -4,6 +4,8 @@ import "./globals.css";
 import { SidebarProvider } from "@/component/sidebar/SidebarProvider";
 import Sidebar, { SidebarMain } from "@/component/sidebar/Sidebar";
 import SidebarToggleMobile from "@/component/sidebar/SidebarToggle.Mobile";
+import SidebarToggleDesktop from "@/component/sidebar/SidebarToggle.Desktop";
+import { AppThemeProvider } from "./theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,20 +28,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 text-slate-900 antialiased`}>
-        <SidebarProvider>
-          <Sidebar />
-          <div className="flex min-h-screen flex-col">
-            <header className="flex items-center gap-3 border-b bg-white px-4 py-3 md:hidden">
-              <SidebarToggleMobile />
-              <span className="text-sm font-medium text-slate-700">Menu</span>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100`}>
+        <AppThemeProvider>
+          <SidebarProvider>
+            {/* グローバルヘッダー */}
+            <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/80 px-3 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+              <div className="flex items-center gap-2">
+                {/* SP: メニュートグル */}
+                <SidebarToggleMobile />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 md:text-base">nick-blog</span>
+              </div>
+              {/* PC: サイドバー最小化トグル */}
+              <SidebarToggleDesktop />
             </header>
-            <SidebarMain className="flex-1 px-4 py-8 md:px-12">
-              {children}
+
+            {/* サイドバー（PC常在 / SPドロワー） */}
+            <Sidebar />
+
+            {/* メイン（PCはサイドバー幅に応じて左余白を自動調整） */}
+            <SidebarMain>
+              <div className="mx-auto max-w-3xl p-4 md:p-8">{children}</div>
             </SidebarMain>
-          </div>
-        </SidebarProvider>
+          </SidebarProvider>
+        </AppThemeProvider>
       </body>
     </html>
   );
