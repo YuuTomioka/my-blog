@@ -21,14 +21,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install deps
         run: npm ci
 
-      - name: Build all
+      - name: Build site (index + static export)
         run: npm run build:all
+
+      - name: Ensure out/ exists
+        run: test -d out
 
       - name: Deploy to S3
         run: aws s3 sync out/ s3://$S3_BUCKET/ --delete

@@ -5,10 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "export": "next build",
     "export:vault": "node scripts/export-from-vault.mjs",
     "index": "node scripts/build-index.mjs",
-    "build:all": "npm run export:vault && npm run index && npm run build"
+    "build:all": "npm run index && npm run build"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",
