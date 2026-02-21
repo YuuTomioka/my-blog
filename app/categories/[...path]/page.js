@@ -1,22 +1,44 @@
-import { getCategoryIndex, getIndexedPosts } from 'lib/posts';
+import fs from 'node:fs';
+import path from 'node:path';
+import { notFound } from 'next/navigation';
+import { getIndexedPosts } from 'lib/posts';
 
 export const dynamic = 'force-static';
 
-export function generateStaticParams() {
-  return Object.keys(getCategoryIndex()).map((categoryPath) => ({
-    path: categoryPath.split('/')
+function readCategoriesIndex() {
+  const p = path.join(process.cwd(), 'content', 'index', 'categories.json');
+  const raw = fs.readFileSync(p, 'utf8');
+  return JSON.parse(raw);
+}
+
+function normalizePathParam(p) {
+  if (Array.isArray(p)) return p;
+  if (typeof p === 'string') return p.split('/').filter(Boolean);
+  return [];
+}
+
+export async function generateStaticParams() {
+  const categories = readCategoriesIndex();
+  return Object.keys(categories).map((key) => ({
+    path: key.split('/').filter(Boolean)
   }));
 }
 
-export default function CategoryPage({ params }) {
-  const categoryPath = params.path.join('/');
-  const categories = getCategoryIndex();
-  const slugs = categories[categoryPath] || [];
+export default async function CategoryPage({ params }) {
+  const resolvedParams = await params;
+  const segs = normalizePathParam(resolvedParams?.path);
+  if (segs.length === 0) notFound();
+
+  const categoryKey = segs.join('/');
+  const categories = readCategoriesIndex();
+  const slugs = categories[categoryKey];
+  if (!slugs) notFound();
+
   const posts = getIndexedPosts().filter((post) => slugs.includes(post.slug));
 
   return (
-    <section>
-      <h1>Category: {categoryPath}</h1>
+    <main style={{ padding: 24 }}>
+      <h1>Category: {categoryKey}</h1>
       <ul>
         {posts.map((post) => (
           <li key={post.slug}>
@@ -24,6 +46,6 @@ export default function CategoryPage({ params }) {
           </li>
         ))}
       </ul>
-    </section>
+    </main>
   );
 }

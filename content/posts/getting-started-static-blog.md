@@ -1,20 +1,38 @@
 ---
-title: "Getting Started with Static Blog"
+title: "Next.js × S3で最小構成の静的ブログを作る"
 slug: "getting-started-static-blog"
-date: "2026-02-20"
+date: "2026-02-21"
 status: "published"
-tags: ["nextjs", "static"]
+tags: ["nextjs", "aws", "blog"]
 categories: ["tech/web"]
-summary: "Static export blog setup overview"
+summary: "Next.jsのstatic exportとS3 + CloudFrontでブログを公開する最小構成を解説"
 ---
 
-# Getting Started
+# Next.js × S3で静的ブログ
 
-This is a published sample post.
+このブログは以下の構成で動いています：
 
-- supports lists
-- supports links like [Next.js](https://nextjs.org)
+- Next.js (static export)
+- S3 (ホスティング)
+- CloudFront (CDN)
 
-```js
-console.log('hello static blog');
-```
+## なぜこの構成か？
+
+- コストが安い
+- シンプル
+- 可用性が高い
+
+## データの流れ
+
+Vault → export → blog repo → build → S3 → CloudFront
+
+## まとめ
+
+- Markdownで記事を書く
+- exportで公開用データを生成
+- pushすると自動デプロイ
+
+---
+
+関連記事：
+- [[publishing-boundary]]

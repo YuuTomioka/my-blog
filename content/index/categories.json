@@ -1,1 +1,8 @@
-{}
+{
+  "tech/web": [
+    "getting-started-static-blog"
+  ],
+  "tech/architecture": [
+    "publishing-boundary"
+  ]
+}
