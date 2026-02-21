@@ -1,0 +1,48 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  line-height: 1.6;
+  color: #111;
+}
+
+.container {
+  width: min(800px, 92vw);
+  margin: 0 auto;
+}
+
+header {
+  padding: 1rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+main {
+  padding: 1.5rem 0 3rem;
+}
+
+.home-link {
+  text-decoration: none;
+  color: inherit;
+  font-weight: 700;
+}
+
+a {
+  color: #0055aa;
+}
+
+pre {
+  background: #f5f5f5;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

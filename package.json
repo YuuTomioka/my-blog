@@ -1,0 +1,23 @@
+{
+  "name": "my-blog",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "export": "next build",
+    "export:vault": "node scripts/export-from-vault.mjs",
+    "index": "node scripts/build-index.mjs",
+    "build:all": "npm run export:vault && npm run index && npm run build"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "rehype-stringify": "^10.0.1",
+    "remark": "^15.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2"
+  }
+}
