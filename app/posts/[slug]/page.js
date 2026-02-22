@@ -9,7 +9,9 @@ export function generateStaticParams() {
 }
 
 export default async function PostPage({ params }) {
-  const post = getPostBySlug(params.slug);
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
+  const post = slug ? getPostBySlug(slug) : null;
 
   if (!post || post.status !== 'published') {
     notFound();
