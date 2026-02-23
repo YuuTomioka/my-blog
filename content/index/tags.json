@@ -1,13 +1,13 @@
 {
-  "nextjs": [
-    "getting-started-static-blog"
-  ],
   "aws": [
     "getting-started-static-blog"
   ],
   "blog": [
     "getting-started-static-blog",
     "publishing-boundary"
+  ],
+  "nextjs": [
+    "getting-started-static-blog"
   ],
   "architecture": [
     "publishing-boundary"

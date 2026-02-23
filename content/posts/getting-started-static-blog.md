@@ -1,11 +1,15 @@
 ---
-title: "Next.js × S3で最小構成の静的ブログを作る"
-slug: "getting-started-static-blog"
-date: "2026-02-21"
-status: "published"
-tags: ["nextjs", "aws", "blog"]
-categories: ["tech/web"]
-summary: "Next.jsのstatic exportとS3 + CloudFrontでブログを公開する最小構成を解説"
+title: Next.js × S3で最小構成の静的ブログを作る
+slug: getting-started-static-blog
+status: published
+created_at: '2026-02-21'
+tags:
+  - aws
+  - blog
+  - nextjs
+categories:
+  - tech/web
+summary: Next.jsのstatic exportとS3 + CloudFrontでブログを公開する最小構成を解説
 ---
 
 # Next.js × S3で静的ブログ

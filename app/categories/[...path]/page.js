@@ -1,15 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getIndexedPosts } from 'lib/posts';
+import { getAllCategories, getPostsByCategoryPath } from 'lib/posts';
 
 export const dynamic = 'force-static';
-
-function readCategoriesIndex() {
-  const p = path.join(process.cwd(), 'content', 'index', 'categories.json');
-  const raw = fs.readFileSync(p, 'utf8');
-  return JSON.parse(raw);
-}
 
 function normalizePathParam(p) {
   if (Array.isArray(p)) return p;
@@ -18,8 +11,7 @@ function normalizePathParam(p) {
 }
 
 export async function generateStaticParams() {
-  const categories = readCategoriesIndex();
-  return Object.keys(categories).map((key) => ({
+  return getAllCategories().map((key) => ({
     path: key.split('/').filter(Boolean)
   }));
 }
@@ -30,19 +22,22 @@ export default async function CategoryPage({ params }) {
   if (segs.length === 0) notFound();
 
   const categoryKey = segs.join('/');
-  const categories = readCategoriesIndex();
-  const slugs = categories[categoryKey];
-  if (!slugs) notFound();
-
-  const posts = getIndexedPosts().filter((post) => slugs.includes(post.slug));
+  const posts = getPostsByCategoryPath(categoryKey);
+  if (posts.length === 0) notFound();
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="stack-lg">
       <h1>Category: {categoryKey}</h1>
-      <ul>
+      <ul className="post-list compact">
         {posts.map((post) => (
-          <li key={post.slug}>
-            <a href={`/posts/${post.slug}/`}>{post.title}</a>
+          <li key={post.slug} className="post-card">
+            <h2 className="post-card-title">
+              <Link href={`/posts/${post.slug}/`}>{post.title}</Link>
+            </h2>
+            <p className="post-meta">
+              <span>Published: {post.created_at}</span>
+              {post.updated_at ? <span>Updated: {post.updated_at}</span> : null}
+            </p>
           </li>
         ))}
       </ul>

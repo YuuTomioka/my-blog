@@ -1,12 +1,14 @@
 ---
-title: "公開境界の設計（VaultとBlogを分離する理由）"
-slug: "publishing-boundary"
-date: "2026-02-21"
-status: "published"
-tags: ["architecture", "blog"]
-categories: ["tech/architecture"]
-summary: "Vaultと公開ブログを分離することで安全に運用する方法"
-related: ["getting-started-static-blog"]
+title: 公開境界の設計（VaultとBlogを分離する理由）
+slug: publishing-boundary
+status: published
+created_at: '2026-02-21'
+tags:
+  - architecture
+  - blog
+categories:
+  - tech/architecture
+summary: Vaultと公開ブログを分離することで安全に運用する方法
 ---
 
 # 公開境界とは？
