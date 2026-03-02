@@ -11,6 +11,7 @@ export default function HomePage() {
       <div className="page-head">
         <p className="eyebrow">Home</p>
         <h1>Latest Posts</h1>
+        <p><Link href="/search/">Search posts</Link></p>
       </div>
       <ul className="post-list">
         {posts.map((post) => (

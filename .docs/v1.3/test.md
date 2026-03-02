@@ -344,3 +344,35 @@ curl -s "http://localhost:3000/index/search.json"
 期待結果:
 
 * 一連の処理が成功し、公開前チェックとして成立する
+
+---
+
+## 5. 実施結果（2026-03-03）
+
+実施環境:
+
+* 作業ディレクトリ: `my-blog`
+* 実データに加えて一時的な `ztest-*` 記事を投入して検証後に撤去
+
+結果サマリ:
+
+* PASS: `T-SEARCH-01`, `T-SEARCH-02`, `T-SEARCH-03`
+* PASS: `T-SEARCH-21`, `T-SEARCH-22`, `T-SEARCH-23`, `T-SEARCH-24`
+* PASS: `T-EXPORT-31`, `T-EXPORT-32`, `T-EXPORT-33`
+* PASS: `T-EXPORT-41`, `T-EXPORT-42`, `T-EXPORT-43`, `T-EXPORT-44`
+* PASS: `T-QUALITY-01`, `T-QUALITY-02`, `T-QUALITY-03`, `T-QUALITY-04`
+* PASS: `T-REG-01`, `T-REG-03`
+
+補足:
+
+* `T-SEARCH-11`, `T-SEARCH-12`, `T-SEARCH-13` は本記録ではコマンド中心で検証したため、最終UI確認はブラウザ手動確認を推奨
+* `T-REG-02` は `npm run build` と既存ルート生成の確認で回帰なし
+* 検証中に不具合を1件修正:
+  * 症状: soft実行で作られた削除候補を `--force-delete` が次回実行時に拾えない
+  * 修正: `scripts/export-from-vault.mjs` で `pending_deletes` を前回stateからマージして force時に適用
+
+最終状態:
+
+* 一時 `ztest-*` 記事は vault から削除済み
+* `npm run export:diff -- --force-delete` 後、`content/.export-state.json` の `pending_deletes.posts = 0` を確認
+* `npm run index` / `npm run build` は成功

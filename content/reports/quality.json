@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-03-02T15:34:29.736Z",
+  "totals": {
+    "posts": 2
+  },
+  "summary": {
+    "warning_count": 2,
+    "by_code": {
+      "COVER_MISSING": 2
+    }
+  },
+  "warnings": [
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "getting-started-static-blog",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "publishing-boundary",
+      "message": "cover is not set"
+    }
+  ]
+}

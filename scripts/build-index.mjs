@@ -1,10 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { renderMarkdown } from '../lib/markdown/render.js';
 
 const ROOT = process.cwd();
 const POSTS_DIR = path.join(ROOT, 'content', 'posts');
 const INDEX_DIR = path.join(ROOT, 'content', 'index');
+const PUBLIC_INDEX_DIR = path.join(ROOT, 'public', 'index');
+const REPORTS_DIR = path.join(ROOT, 'content', 'reports');
+const EXPORT_STATE_PATH = path.join(ROOT, 'content', '.export-state.json');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -37,6 +41,15 @@ function normalizeStringArray(input, { sort = false } = {}) {
 
   if (sort) out.sort((a, b) => a.localeCompare(b));
   return out;
+}
+
+function normalizeSearchText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[!"#$%&'()*+,.:;<=>?@[\\\]^`{|}~]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function normalizePostFrontmatter(frontmatter, filePath) {
@@ -88,6 +101,10 @@ function normalizePostFrontmatter(frontmatter, filePath) {
     console.warn(`[build-index] warning: summary is empty in ${filePath}`);
   }
 
+  const cover = typeof frontmatter.cover === 'string' && frontmatter.cover.trim()
+    ? frontmatter.cover.trim()
+    : '';
+
   return {
     slug,
     title,
@@ -95,7 +112,10 @@ function normalizePostFrontmatter(frontmatter, filePath) {
     updated_at: updatedAt,
     summary,
     tags,
-    categories
+    categories,
+    cover,
+    raw_tags: frontmatter.tags,
+    raw_categories: frontmatter.categories
   };
 }
 
@@ -110,47 +130,243 @@ function listMarkdownFiles(dir) {
     .map((name) => path.join(dir, name));
 }
 
-function buildIndex() {
+function pushWarning(warnings, warning) {
+  warnings.push({
+    level: 'warn',
+    ...warning
+  });
+}
+
+function collectNormalizationWarnings(warnings, post) {
+  const inspect = (rawValue, type) => {
+    const arr = Array.isArray(rawValue) ? rawValue : [rawValue];
+    for (const raw of arr) {
+      if (typeof raw !== 'string') continue;
+      const trimmed = raw.trim();
+      if (!trimmed) continue;
+      const normalized = trimmed.toLowerCase();
+      if (trimmed !== normalized) {
+        pushWarning(warnings, {
+          code: type === 'tag' ? 'TAG_STYLE_INCONSISTENT' : 'CATEGORY_STYLE_INCONSISTENT',
+          slug: post.slug,
+          message: `${type} value "${trimmed}" should be normalized to "${normalized}"`
+        });
+      }
+    }
+  };
+
+  inspect(post.raw_tags, 'tag');
+  inspect(post.raw_categories, 'category');
+}
+
+function buildSearchIndex(posts) {
+  return posts.map((post) => {
+    const searchText = normalizeSearchText([
+      post.title,
+      post.summary,
+      post.tags.join(' '),
+      post.categories.join(' ')
+    ].join(' '));
+
+    return {
+      slug: post.slug,
+      title: post.title,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      summary: post.summary,
+      tags: post.tags,
+      categories: post.categories,
+      search_text: searchText
+    };
+  });
+}
+
+function loadExportStatePendingDeletes() {
+  if (!fs.existsSync(EXPORT_STATE_PATH)) {
+    return { posts: [], assets: [] };
+  }
+
+  try {
+    const state = JSON.parse(fs.readFileSync(EXPORT_STATE_PATH, 'utf8'));
+    return {
+      posts: Array.isArray(state?.pending_deletes?.posts) ? state.pending_deletes.posts : [],
+      assets: Array.isArray(state?.pending_deletes?.assets) ? state.pending_deletes.assets : []
+    };
+  } catch {
+    return { posts: [], assets: [] };
+  }
+}
+
+function writeQualityReports(warnings, totals) {
+  fs.mkdirSync(REPORTS_DIR, { recursive: true });
+
+  const byCode = {};
+  for (const warning of warnings) {
+    byCode[warning.code] = (byCode[warning.code] || 0) + 1;
+  }
+
+  const qualityJson = {
+    generated_at: new Date().toISOString(),
+    totals,
+    summary: {
+      warning_count: warnings.length,
+      by_code: byCode
+    },
+    warnings
+  };
+
+  fs.writeFileSync(path.join(REPORTS_DIR, 'quality.json'), `${JSON.stringify(qualityJson, null, 2)}\n`);
+
+  const lines = [];
+  lines.push('# Quality Report');
+  lines.push('');
+  lines.push(`- Generated at: ${qualityJson.generated_at}`);
+  lines.push(`- Posts scanned: ${totals.posts}`);
+  lines.push(`- Warnings: ${warnings.length}`);
+  lines.push('');
+  lines.push('## Warning counts');
+  lines.push('');
+
+  if (Object.keys(byCode).length === 0) {
+    lines.push('- (none)');
+  } else {
+    for (const [code, count] of Object.entries(byCode).sort((a, b) => b[1] - a[1])) {
+      lines.push(`- ${code}: ${count}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('## Warning details');
+  lines.push('');
+
+  if (warnings.length === 0) {
+    lines.push('- (none)');
+  } else {
+    warnings.forEach((warning, idx) => {
+      lines.push(`${idx + 1}. [${warning.code}] ${warning.message}`);
+      if (warning.slug) lines.push(`   - slug: ${warning.slug}`);
+      if (warning.source_path) lines.push(`   - source_path: ${warning.source_path}`);
+      if (warning.asset_path) lines.push(`   - asset_path: ${warning.asset_path}`);
+    });
+  }
+
+  fs.writeFileSync(path.join(REPORTS_DIR, 'quality.md'), `${lines.join('\n')}\n`);
+}
+
+async function buildIndex() {
   const files = listMarkdownFiles(POSTS_DIR);
-  const publishedPosts = [];
+  const posts = [];
   const tagsMap = {};
   const categoriesMap = {};
+  const warnings = [];
   const seenSlugs = new Set();
 
   for (const filePath of files) {
     const raw = fs.readFileSync(filePath, 'utf8');
-    const { data } = matter(raw);
-    const post = normalizePostFrontmatter(data, filePath);
+    const parsed = matter(raw);
+    const post = normalizePostFrontmatter(parsed.data, filePath);
+
     if (seenSlugs.has(post.slug)) {
       throw new Error(`Duplicate slug "${post.slug}" in ${filePath}`);
     }
     seenSlugs.add(post.slug);
 
-    publishedPosts.push(post);
+    posts.push({ ...post, content: parsed.content });
 
     for (const tag of post.tags) {
-      if (!tagsMap[tag]) {
-        tagsMap[tag] = [];
-      }
+      if (!tagsMap[tag]) tagsMap[tag] = [];
       tagsMap[tag].push(post.slug);
     }
 
     for (const categoryPath of post.categories) {
-      if (!categoriesMap[categoryPath]) {
-        categoriesMap[categoryPath] = [];
-      }
+      if (!categoriesMap[categoryPath]) categoriesMap[categoryPath] = [];
       categoriesMap[categoryPath].push(post.slug);
+    }
+
+    if (!post.summary) {
+      pushWarning(warnings, {
+        code: 'SUMMARY_MISSING',
+        slug: post.slug,
+        message: 'summary is empty'
+      });
+    } else if (post.summary.length < 20) {
+      pushWarning(warnings, {
+        code: 'SUMMARY_TOO_SHORT',
+        slug: post.slug,
+        message: `summary is too short (${post.summary.length} chars)`
+      });
+    }
+
+    if (!post.cover) {
+      pushWarning(warnings, {
+        code: 'COVER_MISSING',
+        slug: post.slug,
+        message: 'cover is not set'
+      });
+    }
+
+    collectNormalizationWarnings(warnings, post);
+
+    const rendered = await renderMarkdown(parsed.content, { postSlug: post.slug });
+    for (const warning of rendered.warnings) {
+      if (warning?.code === 'IMAGE_PATH_NON_STANDARD') {
+        pushWarning(warnings, {
+          code: 'IMAGE_PATH_NON_STANDARD',
+          slug: post.slug,
+          message: warning.message
+        });
+      }
     }
   }
 
-  publishedPosts.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  posts.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+
+  const postsIndex = posts.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    created_at: post.created_at,
+    updated_at: post.updated_at,
+    summary: post.summary,
+    tags: post.tags,
+    categories: post.categories
+  }));
+
+  const searchIndex = buildSearchIndex(posts);
 
   fs.mkdirSync(INDEX_DIR, { recursive: true });
-  fs.writeFileSync(path.join(INDEX_DIR, 'posts.json'), JSON.stringify(publishedPosts, null, 2) + '\n');
+  fs.writeFileSync(path.join(INDEX_DIR, 'posts.json'), JSON.stringify(postsIndex, null, 2) + '\n');
   fs.writeFileSync(path.join(INDEX_DIR, 'tags.json'), JSON.stringify(tagsMap, null, 2) + '\n');
   fs.writeFileSync(path.join(INDEX_DIR, 'categories.json'), JSON.stringify(categoriesMap, null, 2) + '\n');
+  fs.writeFileSync(path.join(INDEX_DIR, 'search.json'), JSON.stringify(searchIndex, null, 2) + '\n');
 
-  console.log(`Indexed ${publishedPosts.length} published posts.`);
+  fs.mkdirSync(PUBLIC_INDEX_DIR, { recursive: true });
+  fs.copyFileSync(path.join(INDEX_DIR, 'search.json'), path.join(PUBLIC_INDEX_DIR, 'search.json'));
+
+  const pendingDeletes = loadExportStatePendingDeletes();
+  for (const item of pendingDeletes.posts) {
+    pushWarning(warnings, {
+      code: 'DELETE_CANDIDATE_POST',
+      slug: item.slug,
+      source_path: item.source_path,
+      message: item.reason || 'delete candidate (post)'
+    });
+  }
+  for (const item of pendingDeletes.assets) {
+    pushWarning(warnings, {
+      code: 'DELETE_CANDIDATE_ASSET',
+      asset_path: item.source_path,
+      message: item.reason || 'delete candidate (asset)'
+    });
+  }
+
+  writeQualityReports(warnings, { posts: posts.length });
+
+  console.log(`Indexed ${posts.length} published posts.`);
+  console.log(`Generated ${searchIndex.length} search records.`);
+  console.log(`Generated quality reports with ${warnings.length} warnings.`);
 }
 
-buildIndex();
+buildIndex().catch((err) => {
+  console.error('[build-index] ERROR:', err?.message ?? err);
+  process.exit(1);
+});

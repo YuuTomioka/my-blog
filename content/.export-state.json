@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "generated_at": "2026-03-02T15:34:23.078Z",
+  "items": [
+    {
+      "source_path": "getting-started-static-blog.md",
+      "slug": "getting-started-static-blog",
+      "hash": "sha1:0f9a41e957007884a023efd36b963b3029985aab",
+      "exported_at": "2026-03-02T15:26:20.141Z"
+    },
+    {
+      "source_path": "publishing-boundary.md",
+      "slug": "publishing-boundary",
+      "hash": "sha1:bf7243e8acf5287a4eceb6b9fc04ca2d7bf6214d",
+      "exported_at": "2026-03-02T15:26:20.141Z"
+    }
+  ],
+  "asset_items": [],
+  "pending_deletes": {
+    "posts": [],
+    "assets": []
+  }
+}

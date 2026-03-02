@@ -14,6 +14,7 @@ export default function RootLayout({ children }) {
           <div className="site-nav">
             <Link href="/" className="home-link">my-blog</Link>
             <nav className="top-nav" aria-label="Primary">
+              <Link href="/search/">Search</Link>
               <Link href="/tags/">Tags</Link>
               <Link href="/categories/">Categories</Link>
             </nav>
