@@ -4,7 +4,7 @@ Static blog built with Next.js App Router.
 
 This repository is the public publishing boundary. Source notes live in `../my-vault`, and only `published` posts are exported into this repo.
 
-## v1.3 highlights
+## v1.4 highlights
 
 - Markdown rendering enhancements
   - Stable heading IDs for `h2/h3` (ASCII slug or `h-<hash>`)
@@ -27,13 +27,16 @@ This repository is the public publishing boundary. Source notes live in `../my-v
   - client-side lightweight scoring (`title:3`, `summary:2`, `tags/categories:2`)
 - Diff export and safety
   - state file: `content/.export-state.json`
+  - redirect map: `content/index/redirects.json` (slug rename tracking)
   - unchanged sources are skipped by hash
+  - `--dry-run` shows planned changes without mutating files/state
   - delete candidates are soft by default, applied only with `--force-delete`
   - mass delete guard: stop when candidates exceed `max(10, floor(total*0.2))`
 - Quality reports
   - `content/reports/quality.json`
   - `content/reports/quality.md`
   - warning-focused checks (summary/cover/image path/delete candidates)
+  - optional strict gate via `--strict` (`SUMMARY_MISSING`, `IMAGE_PATH_NON_STANDARD`)
 
 ## Required environment variable
 
@@ -65,6 +68,7 @@ my-blog/
       tags.json
       categories.json
       search.json
+      redirects.json
     reports/
       quality.json
       quality.md
@@ -139,8 +143,10 @@ Export rules:
 
 - `npm run export:vault` : alias of diff export
 - `npm run export:diff` : diff export with state tracking
+- `npm run export:diff -- --dry-run` : preview changes without writing files/state
 - `npm run export:diff -- --force-delete` : apply pending deletions
 - `npm run index` : generate posts/tags/categories/search + quality reports
+- `npm run quality:strict` : run quality check with strict failure policy
 - `npm run build:search-index` : run index generator (same as `npm run index`)
 - `npm run dev` : start local dev server
 - `npm run build` : production build

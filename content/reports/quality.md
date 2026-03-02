@@ -1,8 +1,9 @@
 # Quality Report
 
-- Generated at: 2026-03-02T15:34:29.736Z
+- Generated at: 2026-03-02T16:33:42.112Z
 - Posts scanned: 2
 - Warnings: 2
+- Strict: disabled
 
 ## Warning counts
 

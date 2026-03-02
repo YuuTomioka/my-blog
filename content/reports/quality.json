@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-02T15:34:29.736Z",
+  "generated_at": "2026-03-02T16:33:42.112Z",
   "totals": {
     "posts": 2
   },
@@ -8,6 +8,11 @@
     "by_code": {
       "COVER_MISSING": 2
     }
+  },
+  "strict": {
+    "enabled": false,
+    "failed": false,
+    "fail_codes": []
   },
   "warnings": [
     {

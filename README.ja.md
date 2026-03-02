@@ -4,7 +4,7 @@ Next.js App Router で構築した静的ブログです。
 
 このリポジトリは公開境界として運用します。元のノートは `../my-vault` に保持し、`published` の記事だけを本リポジトリに export します。
 
-## v1.3 の主な機能
+## v1.4 の主な機能
 
 - Markdown レンダリング強化
   - `h2/h3` の安定見出しID（ASCII slug / 非ASCIIは `h-<hash>`）
@@ -27,13 +27,16 @@ Next.js App Router で構築した静的ブログです。
   - クライアント軽量スコアリング（`title:3`, `summary:2`, `tags/categories:2`）
 - 差分 export と安全装置
   - 状態ファイル `content/.export-state.json`
+  - redirect マップ `content/index/redirects.json`（slug変更追跡）
   - hash一致時はスキップ
+  - `--dry-run` で変更予定のみ表示（ファイル/stateは不変）
   - 削除候補はデフォルト soft（`--force-delete` でのみ削除）
   - 大量削除ガード: `max(10, floor(total*0.2))` 超過で停止
 - 品質レポート
   - `content/reports/quality.json`
   - `content/reports/quality.md`
   - warning中心（summary/cover/画像パス/削除候補）
+  - `--strict` による段階的fail（`SUMMARY_MISSING`, `IMAGE_PATH_NON_STANDARD`）
 
 ## 必須環境変数
 
@@ -65,6 +68,7 @@ my-blog/
       tags.json
       categories.json
       search.json
+      redirects.json
     reports/
       quality.json
       quality.md
@@ -139,8 +143,10 @@ related: ["other-slug-1", "other-slug-2"]
 
 - `npm run export:vault` : 差分 export のエイリアス
 - `npm run export:diff` : state 管理付き差分 export
+- `npm run export:diff -- --dry-run` : 変更予定のみ確認（書き込みなし）
 - `npm run export:diff -- --force-delete` : pending 削除を実行
 - `npm run index` : posts/tags/categories/search + quality を生成
+- `npm run quality:strict` : strictモードで品質チェックを実行
 - `npm run build:search-index` : index 生成（`npm run index` と同等）
 - `npm run dev` : 開発サーバ起動
 - `npm run build` : 本番ビルド

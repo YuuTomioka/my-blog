@@ -11,6 +11,13 @@ const REPORTS_DIR = path.join(ROOT, 'content', 'reports');
 const EXPORT_STATE_PATH = path.join(ROOT, 'content', '.export-state.json');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const STRICT_FAIL_CODES = new Set(['SUMMARY_MISSING', 'IMAGE_PATH_NON_STANDARD']);
+
+function parseArgs(argv) {
+  return {
+    strict: argv.includes('--strict')
+  };
+}
 
 function isValidDateString(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -197,7 +204,13 @@ function loadExportStatePendingDeletes() {
   }
 }
 
-function writeQualityReports(warnings, totals) {
+function writeQualityReports(warnings, totals, options = {}) {
+  const strictEnabled = Boolean(options.strict);
+  const strictFailCodes = warnings
+    .map((warning) => warning.code)
+    .filter((code) => STRICT_FAIL_CODES.has(code));
+  const strictFailed = strictEnabled && strictFailCodes.length > 0;
+
   fs.mkdirSync(REPORTS_DIR, { recursive: true });
 
   const byCode = {};
@@ -212,6 +225,11 @@ function writeQualityReports(warnings, totals) {
       warning_count: warnings.length,
       by_code: byCode
     },
+    strict: {
+      enabled: strictEnabled,
+      failed: strictFailed,
+      fail_codes: Array.from(new Set(strictFailCodes))
+    },
     warnings
   };
 
@@ -223,6 +241,7 @@ function writeQualityReports(warnings, totals) {
   lines.push(`- Generated at: ${qualityJson.generated_at}`);
   lines.push(`- Posts scanned: ${totals.posts}`);
   lines.push(`- Warnings: ${warnings.length}`);
+  lines.push(`- Strict: ${strictEnabled ? (strictFailed ? 'FAILED' : 'PASSED') : 'disabled'}`);
   lines.push('');
   lines.push('## Warning counts');
   lines.push('');
@@ -251,9 +270,15 @@ function writeQualityReports(warnings, totals) {
   }
 
   fs.writeFileSync(path.join(REPORTS_DIR, 'quality.md'), `${lines.join('\n')}\n`);
+
+  return {
+    strictEnabled,
+    strictFailed,
+    strictFailCodes: Array.from(new Set(strictFailCodes))
+  };
 }
 
-async function buildIndex() {
+async function buildIndex(options = {}) {
   const files = listMarkdownFiles(POSTS_DIR);
   const posts = [];
   const tagsMap = {};
@@ -359,14 +384,18 @@ async function buildIndex() {
     });
   }
 
-  writeQualityReports(warnings, { posts: posts.length });
+  const qualityResult = writeQualityReports(warnings, { posts: posts.length }, options);
 
   console.log(`Indexed ${posts.length} published posts.`);
   console.log(`Generated ${searchIndex.length} search records.`);
   console.log(`Generated quality reports with ${warnings.length} warnings.`);
+
+  if (qualityResult.strictEnabled && qualityResult.strictFailed) {
+    throw new Error(`Strict quality check failed: ${qualityResult.strictFailCodes.join(', ')}`);
+  }
 }
 
-buildIndex().catch((err) => {
+buildIndex(parseArgs(process.argv.slice(2))).catch((err) => {
   console.error('[build-index] ERROR:', err?.message ?? err);
   process.exit(1);
 });

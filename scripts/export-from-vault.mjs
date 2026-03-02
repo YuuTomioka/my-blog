@@ -11,6 +11,7 @@ const VAULT_ASSETS_DIR = path.resolve(ROOT, '..', 'my-vault', '50_assets', 'blog
 const DEST_POSTS_DIR = path.join(ROOT, 'content', 'posts');
 const DEST_ASSETS_DIR = path.join(ROOT, 'public', 'assets');
 const STATE_PATH = path.join(ROOT, 'content', '.export-state.json');
+const REDIRECTS_PATH = path.join(ROOT, 'content', 'index', 'redirects.json');
 
 const STATE_VERSION = 1;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -180,57 +181,149 @@ function hashFile(filePath) {
 
 function parseArgs(argv) {
   return {
-    forceDelete: argv.includes('--force-delete')
+    forceDelete: argv.includes('--force-delete'),
+    dryRun: argv.includes('--dry-run')
   };
+}
+
+function newEmptyState() {
+  return {
+    version: STATE_VERSION,
+    generated_at: null,
+    items: [],
+    asset_items: [],
+    pending_deletes: { posts: [], assets: [] }
+  };
+}
+
+function recoveryGuide() {
+  return [
+    'State file is invalid.',
+    `- backup current file: cp ${STATE_PATH} ${STATE_PATH}.bak`,
+    '- restore from backup if available, or',
+    '- remove the state file and rerun export to rebuild state from vault'
+  ].join('\n');
+}
+
+function validateStateArrayItem(item, requiredKeys, label) {
+  if (!item || typeof item !== 'object') {
+    throw new Error(`[state] ${label} must be object`);
+  }
+  for (const key of requiredKeys) {
+    if (!(key in item)) {
+      throw new Error(`[state] missing key "${key}" in ${label}`);
+    }
+  }
+}
+
+function validateStateShape(raw) {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('[state] root must be object');
+  }
+
+  if (typeof raw.version !== 'number') {
+    throw new Error('[state] version must be number');
+  }
+  if (!Array.isArray(raw.items)) {
+    throw new Error('[state] items must be array');
+  }
+  if (!Array.isArray(raw.asset_items)) {
+    throw new Error('[state] asset_items must be array');
+  }
+  if (!raw.pending_deletes || typeof raw.pending_deletes !== 'object') {
+    throw new Error('[state] pending_deletes must be object');
+  }
+  if (!Array.isArray(raw.pending_deletes.posts) || !Array.isArray(raw.pending_deletes.assets)) {
+    throw new Error('[state] pending_deletes.posts/assets must be arrays');
+  }
+
+  for (const item of raw.items) {
+    validateStateArrayItem(item, ['source_path', 'slug', 'hash', 'exported_at'], 'items[]');
+  }
+  for (const item of raw.asset_items) {
+    validateStateArrayItem(item, ['source_path', 'hash', 'exported_at'], 'asset_items[]');
+  }
 }
 
 function loadState() {
   if (!fs.existsSync(STATE_PATH)) {
-    return {
-      version: STATE_VERSION,
-      generated_at: null,
-      items: [],
-      asset_items: [],
-      pending_deletes: { posts: [], assets: [] }
-    };
+    return newEmptyState();
   }
 
   try {
     const raw = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
+    validateStateShape(raw);
+
     return {
-      version: Number(raw?.version) || STATE_VERSION,
-      generated_at: typeof raw?.generated_at === 'string' ? raw.generated_at : null,
-      items: Array.isArray(raw?.items) ? raw.items : [],
-      asset_items: Array.isArray(raw?.asset_items) ? raw.asset_items : [],
-      pending_deletes: raw?.pending_deletes && typeof raw.pending_deletes === 'object'
-        ? {
-            posts: Array.isArray(raw.pending_deletes.posts) ? raw.pending_deletes.posts : [],
-            assets: Array.isArray(raw.pending_deletes.assets) ? raw.pending_deletes.assets : []
-          }
-        : { posts: [], assets: [] }
+      version: Number(raw.version) || STATE_VERSION,
+      generated_at: typeof raw.generated_at === 'string' ? raw.generated_at : null,
+      items: raw.items,
+      asset_items: raw.asset_items,
+      pending_deletes: raw.pending_deletes
     };
   } catch (err) {
-    throw new Error(`Failed to parse state file: ${STATE_PATH} (${err?.message ?? err})`);
+    throw new Error(`Failed to load state file: ${STATE_PATH}\n${err?.message ?? err}\n${recoveryGuide()}`);
   }
 }
 
-function saveState(state) {
+function loadRedirects() {
+  if (!fs.existsSync(REDIRECTS_PATH)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(REDIRECTS_PATH, 'utf8'));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveState(state, dryRun) {
+  if (dryRun) return;
   ensureDir(path.dirname(STATE_PATH));
   fs.writeFileSync(STATE_PATH, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
 }
 
-function removePathIfExists(targetPath) {
+function saveRedirects(redirects, dryRun) {
+  if (dryRun) return;
+  ensureDir(path.dirname(REDIRECTS_PATH));
+  fs.writeFileSync(REDIRECTS_PATH, `${JSON.stringify(redirects, null, 2)}\n`, 'utf8');
+}
+
+function removePathIfExists(targetPath, dryRun) {
   if (!fs.existsSync(targetPath)) return false;
+  if (dryRun) return true;
   fs.rmSync(targetPath, { recursive: true, force: true });
   return true;
 }
 
-function ensureGeneratedRoots() {
+function ensureGeneratedRoots(dryRun) {
+  if (dryRun) return;
   ensureDir(DEST_POSTS_DIR);
   ensureDir(DEST_ASSETS_DIR);
 }
 
-function runPostDiff(previousState, nowIso, forceDelete) {
+function mergeRedirects(existing, events) {
+  const byFrom = new Map();
+  for (const entry of existing) {
+    if (!entry || typeof entry !== 'object') continue;
+    if (typeof entry.from !== 'string' || typeof entry.to !== 'string') continue;
+    byFrom.set(entry.from, entry);
+  }
+
+  let added = 0;
+  for (const event of events) {
+    const prev = byFrom.get(event.from);
+    if (!prev || prev.to !== event.to) {
+      added += 1;
+    }
+    byFrom.set(event.from, event);
+  }
+
+  const merged = Array.from(byFrom.values()).sort((a, b) => a.from.localeCompare(b.from));
+  return { merged, added };
+}
+
+function runPostDiff(previousState, nowIso, options) {
+  const { forceDelete, dryRun } = options;
   const prevBySource = new Map(previousState.items.map((item) => [item.source_path, item]));
   const previousPending = Array.isArray(previousState?.pending_deletes?.posts)
     ? previousState.pending_deletes.posts
@@ -247,6 +340,7 @@ function runPostDiff(previousState, nowIso, forceDelete) {
   };
 
   const deleteCandidates = [];
+  const redirectEvents = [];
 
   if (!fs.existsSync(VAULT_PUBLISHED_DIR)) {
     console.warn(`Skip posts export: source not found (${VAULT_PUBLISHED_DIR})`);
@@ -275,7 +369,9 @@ function runPostDiff(previousState, nowIso, forceDelete) {
       const destFile = path.join(DEST_POSTS_DIR, `${slug}.md`);
       if (!unchanged) {
         const nextRaw = matter.stringify(parsed.content, normalizedData);
-        fs.writeFileSync(destFile, nextRaw, 'utf8');
+        if (!dryRun) {
+          fs.writeFileSync(destFile, nextRaw, 'utf8');
+        }
         if (!previous) metrics.created += 1;
         else metrics.updated += 1;
       } else {
@@ -289,6 +385,13 @@ function runPostDiff(previousState, nowIso, forceDelete) {
           slug: previous.slug,
           current_slug: slug,
           reason: `slug changed: ${previous.slug} -> ${slug}`
+        });
+
+        redirectEvents.push({
+          from: `/posts/${previous.slug}/`,
+          to: `/posts/${slug}/`,
+          reason: 'slug_rename',
+          updated_at: nowIso
         });
       }
 
@@ -349,8 +452,8 @@ function runPostDiff(previousState, nowIso, forceDelete) {
 
   if (forceDelete) {
     for (const candidate of mergedPending) {
-      const deletedPost = removePathIfExists(path.join(DEST_POSTS_DIR, `${candidate.slug}.md`));
-      const deletedAssets = removePathIfExists(path.join(DEST_ASSETS_DIR, candidate.slug));
+      const deletedPost = removePathIfExists(path.join(DEST_POSTS_DIR, `${candidate.slug}.md`), dryRun);
+      const deletedAssets = removePathIfExists(path.join(DEST_ASSETS_DIR, candidate.slug), dryRun);
       if (deletedPost || deletedAssets) metrics.deleted += 1;
     }
   }
@@ -358,11 +461,13 @@ function runPostDiff(previousState, nowIso, forceDelete) {
   return {
     items: nextItems.sort((a, b) => a.source_path.localeCompare(b.source_path)),
     pendingDeletes: forceDelete ? [] : mergedPending,
-    metrics
+    metrics,
+    redirectEvents
   };
 }
 
-function runAssetDiff(previousState, nowIso, forceDelete) {
+function runAssetDiff(previousState, nowIso, options) {
+  const { forceDelete, dryRun } = options;
   const prevBySource = new Map(previousState.asset_items.map((item) => [item.source_path, item]));
   const previousPending = Array.isArray(previousState?.pending_deletes?.assets)
     ? previousState.pending_deletes.assets
@@ -391,8 +496,10 @@ function runAssetDiff(previousState, nowIso, forceDelete) {
 
       const destFile = path.join(DEST_ASSETS_DIR, sourcePath);
       if (!unchanged) {
-        ensureDir(path.dirname(destFile));
-        fs.copyFileSync(sourceFile, destFile);
+        if (!dryRun) {
+          ensureDir(path.dirname(destFile));
+          fs.copyFileSync(sourceFile, destFile);
+        }
         if (!previous) metrics.created += 1;
         else metrics.updated += 1;
       } else {
@@ -434,7 +541,7 @@ function runAssetDiff(previousState, nowIso, forceDelete) {
 
   if (forceDelete) {
     for (const candidate of mergedPending) {
-      const deleted = removePathIfExists(path.join(DEST_ASSETS_DIR, candidate.source_path));
+      const deleted = removePathIfExists(path.join(DEST_ASSETS_DIR, candidate.source_path), dryRun);
       if (deleted) metrics.deleted += 1;
     }
   }
@@ -450,11 +557,12 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const nowIso = new Date().toISOString();
   const previousState = loadState();
+  const previousRedirects = loadRedirects();
 
-  ensureGeneratedRoots();
+  ensureGeneratedRoots(args.dryRun);
 
-  const postResult = runPostDiff(previousState, nowIso, args.forceDelete);
-  const assetResult = runAssetDiff(previousState, nowIso, args.forceDelete);
+  const postResult = runPostDiff(previousState, nowIso, args);
+  const assetResult = runAssetDiff(previousState, nowIso, args);
 
   const nextState = {
     version: STATE_VERSION,
@@ -467,8 +575,14 @@ function main() {
     }
   };
 
-  saveState(nextState);
+  const { merged: nextRedirects, added: redirectsAdded } = mergeRedirects(previousRedirects, postResult.redirectEvents);
 
+  saveState(nextState, args.dryRun);
+  saveRedirects(nextRedirects, args.dryRun);
+
+  if (args.dryRun) {
+    console.log('[dry-run] no files were written or deleted.');
+  }
   console.log(
     `Posts: created=${postResult.metrics.created}, updated=${postResult.metrics.updated}, ` +
     `skipped=${postResult.metrics.skipped}, deleted=${postResult.metrics.deleted}`
@@ -477,6 +591,7 @@ function main() {
     `Assets: created=${assetResult.metrics.created}, updated=${assetResult.metrics.updated}, ` +
     `skipped=${assetResult.metrics.skipped}, deleted=${assetResult.metrics.deleted}`
   );
+  console.log(`Redirects: added=${redirectsAdded}, total=${nextRedirects.length}`);
   if (!args.forceDelete) {
     console.log(
       `Pending deletes: posts=${postResult.pendingDeletes.length}, assets=${assetResult.pendingDeletes.length} ` +
