@@ -1,208 +1,123 @@
 # my-blog
 
-Static blog built with Next.js (App Router) and exported as fully static assets.
-Deployed to AWS S3 + CloudFront (OAC) and served via a custom domain (Route53 + ACM).
+Static blog built with Next.js App Router.
 
-This repo is the **public/blog delivery repo**.
-Source notes and knowledge stay in a separate local vault (`../my-vault`).
-Only **published** blog posts are exported from the vault into this repo.
+This repository is the public publishing boundary. Source notes live in `../my-vault`, and only `published` posts are exported into this repo.
 
----
+## v1.2 highlights
 
-## Goals (v1)
+- Markdown rendering enhancements
+  - Stable heading IDs for `h2/h3` (ASCII slug or `h-<hash>`)
+  - Inline TOC generation (`h2/h3`, hidden when fewer than 2 headings)
+  - Heading anchor links (`#`)
+  - Code highlighting via `rehype-pretty-code`
+  - External link controls (`target="_blank"`, `rel="noopener noreferrer"`)
+  - Wiki links (`[[slug]]`) remain supported
+  - Image path convention warning (`/assets/{slug}/...`)
+- Post navigation
+  - Adjacent posts (newer/older by `created_at desc`)
+  - Related posts (`related` frontmatter first, then tag overlap fallback)
+- SEO and crawlability
+  - `generateMetadata` for title/description/canonical/OG/Twitter
+  - JSON-LD (`Article`) on post pages
+  - `/sitemap.xml` and `/robots.txt` routes
 
-- Minimal-cost static blog hosting
-- Content source is Markdown (no MDX)
-- Navigation via tags/categories (no DB)
-- Safe publishing boundary:
-  - Vault may contain private notes
-  - Only `published` posts are exported into this repo
-- Automated deploy to S3 + CloudFront on push
+## Required environment variable
 
----
-
-## Architecture
-
-### Hosting
-- **S3 (private)**: stores static export output (`out/`)
-- **CloudFront + OAC**: CDN + secure origin access
-- **Custom Domain**: Route53 + ACM certificate (must be in `us-east-1` for CloudFront)
-
-### Rendering
-- Markdown -> HTML using remark/rehype (no MDX)
-
-### Data model
-- Posts are Markdown files with YAML frontmatter
-- Index JSON files are generated at build time for:
-  - posts list
-  - tags map
-  - categories map
-
-No database.
-
----
+- `NEXT_PUBLIC_SITE_URL` (example: `https://example.com`)
+  - Used for canonical URL, OG/Twitter URL/image, JSON-LD, sitemap, robots
+  - If missing, app falls back to `http://localhost:3000` with warnings
 
 ## Routes
 
-- Home: `/`
-- Post: `/posts/{slug}`
-- Tag: `/tags/{tag}`
-- Category: `/categories/{...path}`
-  - category uses path syntax in frontmatter, e.g. `"tech/web"`
-  - URL becomes `/categories/tech/web`
+- `/`
+- `/posts/{slug}`
+- `/tags`
+- `/tags/{tag}`
+- `/categories`
+- `/categories/{...path}`
+- `/sitemap.xml`
+- `/robots.txt`
 
----
+## Repository layout
 
-## Repository layout (v1)
-
+```text
 my-blog/
-- content/
-  - posts/                     # exported markdown posts
-  - index/
-    - posts.json               # list of posts
-    - tags.json                # tag -> [slug]
-    - categories.json          # categoryPath -> [slug]
-- public/
-  - assets/                    # public images copied from vault (optional)
-- scripts/
-  - export-from-vault.mjs      # export published posts/assets from ../my-vault
-  - build-index.mjs            # generate content/index/*.json
-- app/                         # Next.js App Router pages
-- lib/
-  - markdown/                  # markdown render utilities
-- out/                         # Next.js static export output (generated)
-- .github/workflows/deploy.yml # CI deploy to S3/CloudFront
-
----
+  content/
+    posts/
+    index/
+      posts.json
+      tags.json
+      categories.json
+  public/
+    assets/
+  scripts/
+    export-from-vault.mjs
+    build-index.mjs
+  app/
+    posts/[slug]/page.js
+    sitemap.xml/route.js
+    robots.txt/route.js
+  lib/
+    markdown/render.js
+    posts.js
+```
 
 ## Content model
 
-### Markdown frontmatter (required)
-
-Each post file under `content/posts/{slug}.md` must contain:
+### Required frontmatter
 
 ```yaml
 ---
-title: "..."
+title: "Post title"
 slug: "unique-slug"
-date: "YYYY-MM-DD"
-status: "published"   # only published is exported
+status: "published"
+created_at: "YYYY-MM-DD"
 tags: ["tag1", "tag2"]
 categories: ["tech/web", "infra/aws"]
 ---
 ```
 
-### Optional fields
+Notes:
+- Legacy `date` is accepted by export script and normalized to `created_at`.
+- `created_at` is used for ordering (`desc`) and adjacent links.
+
+### Optional frontmatter
 
 ```yaml
-updated: "YYYY-MM-DD"
-summary: "short summary for list pages"
-series: "series-name"
-series_order: 1
+updated_at: "YYYY-MM-DD"
+summary: "short summary for list and metadata"
+cover: "/assets/<slug>/cover.jpg"
 related: ["other-slug-1", "other-slug-2"]
 ```
 
----
+Notes:
+- `cover` is used for OG/Twitter image and JSON-LD image.
+- `related` preserves order and is resolved before tag-based fallback.
 
-## Vault export pipeline (publishing boundary)
+## Vault export pipeline
 
-Source vault is expected at:
-
-* `../my-vault/40_blog/published/` (markdown posts)
-* `../my-vault/50_assets/blog/` (public assets, optional)
+Source paths:
+- `../my-vault/40_blog/published/` for markdown posts
+- `../my-vault/50_assets/blog/` for public assets
 
 Export rules:
+- Only posts with `status: published` are exported.
+- Destination:
+  - posts -> `content/posts/`
+  - assets -> `public/assets/`
+- Optional frontmatter such as `cover` and `related` is preserved.
 
-* Only markdown posts with `status: published` are imported.
-* Export destination:
+## Local commands
 
-  * posts -> `content/posts/`
-  * assets -> `public/assets/`
+- `npm run export:vault` : export published posts/assets from vault
+- `npm run index` : generate `content/index/*.json`
+- `npm run dev` : start local dev server
+- `npm run build` : production build
+- `npm run publish:check` : export + index + build in one command
 
-This repo should **never** read directly from vault at runtime.
-Everything needed for deploy must exist inside this repo after export.
+## Publishing notes
 
----
-
-## Local commands (v1)
-
-### 1) Export from vault
-
-* Reads from `../my-vault`
-* Writes into `content/` and `public/assets`
-
-Command:
-
-* `node scripts/export-from-vault.mjs`
-
-### 2) Build index JSON
-
-Command:
-
-* `node scripts/build-index.mjs`
-
-### 3) Dev
-
-Command:
-
-* `npm run dev`
-
-### 4) Static build/export
-
-Command:
-
-* `npm run build`
-* `npm run export` (or included in build step depending on config)
-
----
-
-## Deployment (GitHub Actions)
-
-On push to `main`:
-
-1. install deps
-2. export-from-vault (optional in CI; can be local-only depending on workflow choice)
-3. build-index
-4. next build + export -> `out/`
-5. `aws s3 sync out/ s3://<BUCKET>/`
-6. CloudFront invalidation (optional but recommended)
-
-### Publishing policy (IMPORTANT)
-This repo only contains public artifacts.
-Vault export is performed locally and committed into this repo.
-
-CI must NOT access the vault.
-GitHub Actions performs only:
-- build (static export)
-- deploy to S3 + CloudFront
-
----
-
-## AWS setup checklist (summary)
-
-* S3 bucket for site output (private)
-* CloudFront distribution with OAC to S3
-* Route53 hosted zone for domain
-* ACM certificate in `us-east-1` attached to CloudFront
-* GitHub Actions IAM permissions:
-
-  * s3:PutObject, s3:DeleteObject, s3:ListBucket (on the bucket)
-  * cloudfront:CreateInvalidation (on the distribution)
-
----
-
-## Non-goals (v1)
-
-* CMS / admin UI
-* Full-text search
-* Comments
-* SSR/ISR
-* Database
-
----
-
-## Notes
-
-* Categories must be consistent with vault `_meta/categories.md` vocabulary.
-* Tags should be consistent with vault `_meta/tags.md` vocabulary.
-* Use Tailwind.
+- This repo should not read from vault at runtime.
+- CI should build/deploy only from repository contents.
+- Keep image paths in markdown under `/assets/{slug}/...` for consistency.

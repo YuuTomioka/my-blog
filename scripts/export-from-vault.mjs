@@ -125,6 +125,27 @@ function normalizeFrontmatter(data, sourceFile) {
   if (updatedAt) normalized.updated_at = updatedAt;
   if (summary) normalized.summary = summary;
 
+  // v1.2 optional frontmatter (preserve for SEO/related posts)
+  if (data.cover !== undefined && data.cover !== null && data.cover !== "") {
+    if (typeof data.cover !== "string") {
+      throw new Error(`Invalid cover type in ${sourceFile}`);
+    }
+    normalized.cover = data.cover.trim();
+  }
+
+  if (data.related !== undefined && data.related !== null) {
+    if (!Array.isArray(data.related)) {
+      throw new Error(`"related" must be an array of slugs in ${sourceFile}`);
+    }
+    const related = data.related
+      .filter((v) => typeof v === "string")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (related.length > 0) {
+      normalized.related = related;
+    }
+  }
+
   return normalized;
 }
 

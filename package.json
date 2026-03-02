@@ -11,13 +11,19 @@
     "publish:check": "npm run export:vault && npm run index && npm run build"
   },
   "dependencies": {
+    "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "rehype-pretty-code": "^0.14.1",
     "rehype-stringify": "^10.0.1",
     "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
-    "remark-rehype": "^11.1.2"
+    "remark-rehype": "^11.1.2",
+    "shiki": "^3.22.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
   }
 }

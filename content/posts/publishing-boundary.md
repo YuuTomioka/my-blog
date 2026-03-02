@@ -9,6 +9,8 @@ tags:
 categories:
   - tech/architecture
 summary: Vaultと公開ブログを分離することで安全に運用する方法
+related:
+  - getting-started-static-blog
 ---
 
 # 公開境界とは？

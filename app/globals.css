@@ -190,6 +190,91 @@ code {
   margin-top: 0;
 }
 
+.prose h2,
+.prose h3 {
+  scroll-margin-top: 1rem;
+}
+
+.heading-anchor {
+  margin-right: 0.45rem;
+  text-decoration: none;
+  opacity: 0.35;
+  color: var(--muted);
+}
+
+.prose h2:hover .heading-anchor,
+.prose h3:hover .heading-anchor {
+  opacity: 1;
+}
+
+.toc-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.85rem 1rem;
+}
+
+.toc-title {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.toc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.toc-item {
+  margin: 0;
+}
+
+.toc-item a {
+  text-decoration: none;
+}
+
+.toc-item-depth3 {
+  padding-left: 0.9rem;
+}
+
+.adjacent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.adjacent-card {
+  min-height: 72px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.8rem;
+}
+
+.adjacent-label {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.code-block {
+  position: relative;
+}
+
+.code-block[data-language]::before {
+  content: attr(data-language);
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+  text-transform: lowercase;
+}
+
 .simple-list {
   list-style: none;
   padding: 0;
@@ -232,5 +317,9 @@ code {
   .site-nav {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .adjacent-grid {
+    grid-template-columns: 1fr;
   }
 }

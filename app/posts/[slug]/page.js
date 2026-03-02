@@ -1,12 +1,66 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { markdownToHtml } from 'lib/markdown/render';
-import { getAllPosts, getPostBySlug } from 'lib/posts';
+import { buildMarkdownExcerpt, renderMarkdown } from 'lib/markdown/render';
+import { getAdjacentPosts, getAllPosts, getPostBySlug, getRelatedPosts } from 'lib/posts';
 
 export const dynamic = 'force-static';
 
 export function generateStaticParams() {
   return getAllPosts().map((post) => ({ slug: post.slug }));
+}
+
+function getSiteUrl() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) {
+    console.warn('[v1.2] NEXT_PUBLIC_SITE_URL is not set. Falling back to http://localhost:3000');
+    return 'http://localhost:3000';
+  }
+  return siteUrl.replace(/\/+$/, '');
+}
+
+function makePostUrl(slug) {
+  return `${getSiteUrl()}/posts/${encodeURIComponent(slug)}/`;
+}
+
+function getDescription(post) {
+  if (typeof post.summary === 'string' && post.summary.trim()) {
+    return post.summary.trim();
+  }
+  return buildMarkdownExcerpt(post.content, 140);
+}
+
+export async function generateMetadata({ params }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
+  const post = slug ? getPostBySlug(slug) : null;
+  if (!post || post.status !== 'published') {
+    return {};
+  }
+
+  const canonical = makePostUrl(post.slug);
+  const description = getDescription(post);
+  const image = typeof post.cover === 'string' && post.cover ? `${getSiteUrl()}${post.cover.startsWith('/') ? '' : '/'}${post.cover}` : undefined;
+
+  return {
+    title: post.title,
+    description,
+    alternates: {
+      canonical
+    },
+    openGraph: {
+      type: 'article',
+      title: post.title,
+      description,
+      url: canonical,
+      ...(image ? { images: [{ url: image }] } : {})
+    },
+    twitter: {
+      card: image ? 'summary_large_image' : 'summary',
+      title: post.title,
+      description,
+      ...(image ? { images: [image] } : {})
+    }
+  };
 }
 
 export default async function PostPage({ params }) {
@@ -18,11 +72,51 @@ export default async function PostPage({ params }) {
     notFound();
   }
 
-  const html = await markdownToHtml(post.content);
+  const siteUrl = getSiteUrl();
+  const { html, toc, warnings } = await renderMarkdown(post.content, {
+    postSlug: post.slug,
+    siteUrl
+  });
+  if (warnings.length > 0) {
+    console.warn(`[render warnings] ${post.slug}`, warnings);
+  }
+
+  const { next, previous } = getAdjacentPosts(post.slug);
+  const { posts: relatedPosts, warnings: relatedWarnings } = getRelatedPosts(post, 3);
+  if (relatedWarnings.length > 0) {
+    console.warn(`[related warnings] ${post.slug}`, relatedWarnings);
+  }
+
+  const canonical = `${siteUrl}/posts/${encodeURIComponent(post.slug)}/`;
+  const description = getDescription(post);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    datePublished: post.created_at,
+    ...(post.updated_at ? { dateModified: post.updated_at } : {}),
+    description,
+    mainEntityOfPage: canonical,
+    author: { '@type': 'Person', name: 'my-blog' },
+    publisher: { '@type': 'Organization', name: 'my-blog' },
+    ...(post.cover ? { image: `${siteUrl}${post.cover.startsWith('/') ? '' : '/'}${post.cover}` } : {})
+  };
 
   return (
     <article className="stack-lg">
       <h1>{post.title}</h1>
+      {toc.length >= 2 ? (
+        <nav className="toc-card" aria-label="Table of contents">
+          <p className="toc-title">On this page</p>
+          <ul className="toc-list">
+            {toc.map((item) => (
+              <li key={item.id} className={item.depth === 3 ? 'toc-item toc-item-depth3' : 'toc-item'}>
+                <a href={`#${item.id}`}>{item.text}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null}
       <div className="post-meta-block">
         <p className="post-meta-line">Published: {post.created_at}</p>
         {post.updated_at ? <p className="post-meta-line">Updated: {post.updated_at}</p> : null}
@@ -46,6 +140,48 @@ export default async function PostPage({ params }) {
         ))}
       </div>
       <div className="prose" dangerouslySetInnerHTML={{ __html: html }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {(next || previous) ? (
+        <nav className="adjacent-grid" aria-label="Adjacent posts">
+          <div className="adjacent-card">
+            {next ? (
+              <>
+                <p className="adjacent-label">Next (newer)</p>
+                <Link href={`/posts/${next.slug}/`}>{next.title}</Link>
+              </>
+            ) : null}
+          </div>
+          <div className="adjacent-card">
+            {previous ? (
+              <>
+                <p className="adjacent-label">Previous (older)</p>
+                <Link href={`/posts/${previous.slug}/`}>{previous.title}</Link>
+              </>
+            ) : null}
+          </div>
+        </nav>
+      ) : null}
+      {relatedPosts.length > 0 ? (
+        <section className="stack-lg">
+          <h2>Related Posts</h2>
+          <ul className="post-list compact">
+            {relatedPosts.map((related) => (
+              <li key={related.slug} className="post-card">
+                <h3 className="post-card-title">
+                  <Link href={`/posts/${related.slug}/`}>{related.title}</Link>
+                </h3>
+                <p className="post-meta">
+                  <span>Published: {related.created_at}</span>
+                  {related.updated_at ? <span>Updated: {related.updated_at}</span> : null}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </article>
   );
 }
