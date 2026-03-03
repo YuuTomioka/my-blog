@@ -4,7 +4,7 @@ Next.js App Router で構築した静的ブログです。
 
 このリポジトリは公開境界として運用します。元のノートは `../my-vault` に保持し、`published` の記事だけを本リポジトリに export します。
 
-## v1.4 の主な機能
+## v1.6 の主な機能
 
 - Markdown レンダリング強化
   - `h2/h3` の安定見出しID（ASCII slug / 非ASCIIは `h-<hash>`）
@@ -36,7 +36,9 @@ Next.js App Router で構築した静的ブログです。
   - `content/reports/quality.json`
   - `content/reports/quality.md`
   - warning中心（summary/cover/画像パス/削除候補）
-  - `--strict` による段階的fail（`SUMMARY_MISSING`, `IMAGE_PATH_NON_STANDARD`）
+  - strict profile（`base`: `SUMMARY_MISSING`, `IMAGE_PATH_NON_STANDARD` / `extended`: `+SUMMARY_TOO_SHORT`）
+  - `--strict-cover-required --cover-policy-date=YYYY-MM-DD` による新規記事 cover strict
+  - 前回比（`delta`）と上位3件の priority actions を出力
 
 ## 必須環境変数
 
@@ -146,7 +148,9 @@ related: ["other-slug-1", "other-slug-2"]
 - `npm run export:diff -- --dry-run` : 変更予定のみ確認（書き込みなし）
 - `npm run export:diff -- --force-delete` : pending 削除を実行
 - `npm run index` : posts/tags/categories/search + quality を生成
-- `npm run quality:strict` : strictモードで品質チェックを実行
+- `npm run quality:strict` : strict profile `base` を実行
+- `npm run quality:strict:extended` : strict profile `extended` を実行（`SUMMARY_TOO_SHORT` を追加）
+- `npm run quality:strict:cover -- --cover-policy-date=YYYY-MM-DD` : 基準日以降の新規記事に cover strict を適用
 - `npm run build:search-index` : index 生成（`npm run index` と同等）
 - `npm run dev` : 開発サーバ起動
 - `npm run build` : 本番ビルド

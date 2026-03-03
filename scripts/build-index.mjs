@@ -9,14 +9,45 @@ const INDEX_DIR = path.join(ROOT, 'content', 'index');
 const PUBLIC_INDEX_DIR = path.join(ROOT, 'public', 'index');
 const REPORTS_DIR = path.join(ROOT, 'content', 'reports');
 const EXPORT_STATE_PATH = path.join(ROOT, 'content', '.export-state.json');
+const QUALITY_REPORT_JSON_PATH = path.join(REPORTS_DIR, 'quality.json');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const STRICT_FAIL_CODES = new Set(['SUMMARY_MISSING', 'IMAGE_PATH_NON_STANDARD']);
+const STRICT_PROFILE_FAIL_CODES = {
+  base: new Set(['SUMMARY_MISSING', 'IMAGE_PATH_NON_STANDARD']),
+  extended: new Set(['SUMMARY_MISSING', 'IMAGE_PATH_NON_STANDARD', 'SUMMARY_TOO_SHORT'])
+};
 const SEARCH_INDEX_WARN_THRESHOLD_BYTES = 262144;
 
+function readArgValue(argv, key) {
+  const prefix = `${key}=`;
+  const direct = argv.find((arg) => arg.startsWith(prefix));
+  if (direct) return direct.slice(prefix.length);
+
+  const idx = argv.findIndex((arg) => arg === key);
+  if (idx >= 0 && idx + 1 < argv.length) return argv[idx + 1];
+  return null;
+}
+
 function parseArgs(argv) {
+  const strictProfile = readArgValue(argv, '--strict-profile') || 'base';
+  const strictCoverRequired = argv.includes('--strict-cover-required');
+  const coverPolicyDate = readArgValue(argv, '--cover-policy-date');
+
+  if (!Object.prototype.hasOwnProperty.call(STRICT_PROFILE_FAIL_CODES, strictProfile)) {
+    throw new Error(`Invalid --strict-profile "${strictProfile}" (expected: base|extended)`);
+  }
+  if (strictCoverRequired && !coverPolicyDate) {
+    throw new Error('Missing required --cover-policy-date=YYYY-MM-DD when --strict-cover-required is enabled');
+  }
+  if (coverPolicyDate && !isValidDateString(coverPolicyDate)) {
+    throw new Error(`Invalid --cover-policy-date: ${coverPolicyDate}`);
+  }
+
   return {
-    strict: argv.includes('--strict')
+    strict: argv.includes('--strict'),
+    strictProfile,
+    strictCoverRequired,
+    coverPolicyDate
   };
 }
 
@@ -205,16 +236,63 @@ function loadExportStatePendingDeletes() {
   }
 }
 
+function loadPreviousQualitySnapshot() {
+  if (!fs.existsSync(QUALITY_REPORT_JSON_PATH)) return null;
+
+  try {
+    const data = JSON.parse(fs.readFileSync(QUALITY_REPORT_JSON_PATH, 'utf8'));
+    return {
+      warning_count: Number(data?.summary?.warning_count || 0),
+      by_code: data?.summary?.by_code && typeof data.summary.by_code === 'object' ? data.summary.by_code : {}
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildWarningDelta(currentByCode, previousSnapshot) {
+  const prevWarningCount = Number(previousSnapshot?.warning_count || 0);
+  const prevByCode = previousSnapshot?.by_code || {};
+  const allCodes = new Set([...Object.keys(prevByCode), ...Object.keys(currentByCode)]);
+  const byCodeDelta = {};
+
+  for (const code of allCodes) {
+    const delta = (currentByCode[code] || 0) - (prevByCode[code] || 0);
+    if (delta !== 0) byCodeDelta[code] = delta;
+  }
+
+  return {
+    warning_count: Object.values(currentByCode).reduce((sum, v) => sum + v, 0) - prevWarningCount,
+    by_code: byCodeDelta
+  };
+}
+
+function toPriorityRecommendation(code) {
+  if (code === 'SUMMARY_MISSING') return 'Add a concise summary in frontmatter.';
+  if (code === 'SUMMARY_TOO_SHORT') return 'Expand summary to 20+ characters.';
+  if (code === 'COVER_MISSING' || code === 'COVER_MISSING_NEW_POST') return 'Set cover image path in frontmatter.';
+  if (code === 'IMAGE_PATH_NON_STANDARD') return 'Rewrite image paths to /assets/{slug}/... format.';
+  if (code.startsWith('DELETE_CANDIDATE_')) return 'Review export state and apply or clear pending deletes.';
+  if (code === 'SEARCH_INDEX_TOO_LARGE') return 'Reduce search fields or split index scope.';
+  return 'Review affected posts and resolve root causes.';
+}
+
 function writeQualityReports(warnings, totals, options = {}) {
   const strictEnabled = Boolean(options.strict);
+  const strictProfile = options.strictProfile || 'base';
+  const strictFailCodeSet = new Set(STRICT_PROFILE_FAIL_CODES[strictProfile] || STRICT_PROFILE_FAIL_CODES.base);
+  if (options.strictCoverRequired) {
+    strictFailCodeSet.add('COVER_MISSING_NEW_POST');
+  }
   const searchIndexStats = options.searchIndexStats || {
     bytes: 0,
     records: 0,
     warn_threshold_bytes: SEARCH_INDEX_WARN_THRESHOLD_BYTES
   };
+  const previousSnapshot = options.previousQualitySnapshot || null;
   const strictFailCodes = warnings
     .map((warning) => warning.code)
-    .filter((code) => STRICT_FAIL_CODES.has(code));
+    .filter((code) => strictFailCodeSet.has(code));
   const strictFailed = strictEnabled && strictFailCodes.length > 0;
 
   fs.mkdirSync(REPORTS_DIR, { recursive: true });
@@ -223,6 +301,15 @@ function writeQualityReports(warnings, totals, options = {}) {
   for (const warning of warnings) {
     byCode[warning.code] = (byCode[warning.code] || 0) + 1;
   }
+  const delta = buildWarningDelta(byCode, previousSnapshot);
+  const priorityActions = Object.entries(byCode)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([code, count]) => ({
+      code,
+      count,
+      action: toPriorityRecommendation(code)
+    }));
 
   const qualityJson = {
     generated_at: new Date().toISOString(),
@@ -233,14 +320,19 @@ function writeQualityReports(warnings, totals, options = {}) {
     },
     strict: {
       enabled: strictEnabled,
+      profile: strictProfile,
+      cover_required_for_new_posts: Boolean(options.strictCoverRequired),
+      cover_policy_date: options.coverPolicyDate || null,
       failed: strictFailed,
       fail_codes: Array.from(new Set(strictFailCodes))
     },
     search_index: searchIndexStats,
+    delta,
+    priority_actions: priorityActions,
     warnings
   };
 
-  fs.writeFileSync(path.join(REPORTS_DIR, 'quality.json'), `${JSON.stringify(qualityJson, null, 2)}\n`);
+  fs.writeFileSync(QUALITY_REPORT_JSON_PATH, `${JSON.stringify(qualityJson, null, 2)}\n`);
 
   const lines = [];
   lines.push('# Quality Report');
@@ -249,9 +341,25 @@ function writeQualityReports(warnings, totals, options = {}) {
   lines.push(`- Posts scanned: ${totals.posts}`);
   lines.push(`- Warnings: ${warnings.length}`);
   lines.push(`- Strict: ${strictEnabled ? (strictFailed ? 'FAILED' : 'PASSED') : 'disabled'}`);
+  lines.push(`- Strict profile: ${strictProfile}`);
+  lines.push(`- Strict cover required for new posts: ${options.strictCoverRequired ? 'enabled' : 'disabled'}`);
+  lines.push(`- Cover policy date: ${options.coverPolicyDate || '-'}`);
   lines.push(`- Search index bytes: ${searchIndexStats.bytes}`);
   lines.push(`- Search index records: ${searchIndexStats.records}`);
   lines.push(`- Search index warn threshold bytes: ${searchIndexStats.warn_threshold_bytes}`);
+  lines.push(`- Delta warning count: ${delta.warning_count >= 0 ? `+${delta.warning_count}` : delta.warning_count}`);
+  lines.push('');
+  lines.push('## Priority actions');
+  lines.push('');
+
+  if (priorityActions.length === 0) {
+    lines.push('- (none)');
+  } else {
+    priorityActions.forEach((item) => {
+      lines.push(`- ${item.code}: ${item.count} (${item.action})`);
+    });
+  }
+
   lines.push('');
   lines.push('## Warning counts');
   lines.push('');
@@ -294,6 +402,7 @@ async function buildIndex(options = {}) {
   const tagsMap = {};
   const categoriesMap = {};
   const warnings = [];
+  const previousQualitySnapshot = loadPreviousQualitySnapshot();
   const seenSlugs = new Set();
 
   for (const filePath of files) {
@@ -338,6 +447,18 @@ async function buildIndex(options = {}) {
         slug: post.slug,
         message: 'cover is not set'
       });
+
+      if (
+        options.strictCoverRequired &&
+        options.coverPolicyDate &&
+        String(post.created_at) >= String(options.coverPolicyDate)
+      ) {
+        pushWarning(warnings, {
+          code: 'COVER_MISSING_NEW_POST',
+          slug: post.slug,
+          message: `cover is required for posts created on/after ${options.coverPolicyDate}`
+        });
+      }
     }
 
     collectNormalizationWarnings(warnings, post);
@@ -410,7 +531,7 @@ async function buildIndex(options = {}) {
   const qualityResult = writeQualityReports(
     warnings,
     { posts: posts.length },
-    { ...options, searchIndexStats }
+    { ...options, searchIndexStats, previousQualitySnapshot }
   );
 
   console.log(`Indexed ${posts.length} published posts.`);

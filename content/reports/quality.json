@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-03T15:00:31.008Z",
+  "generated_at": "2026-03-03T15:11:11.248Z",
   "totals": {
     "posts": 2
   },
@@ -11,6 +11,9 @@
   },
   "strict": {
     "enabled": false,
+    "profile": "base",
+    "cover_required_for_new_posts": false,
+    "cover_policy_date": null,
     "failed": false,
     "fail_codes": []
   },
@@ -19,6 +22,20 @@
     "records": 2,
     "warn_threshold_bytes": 262144
   },
+  "delta": {
+    "warning_count": -2,
+    "by_code": {
+      "SUMMARY_TOO_SHORT": -1,
+      "COVER_MISSING": -1
+    }
+  },
+  "priority_actions": [
+    {
+      "code": "COVER_MISSING",
+      "count": 2,
+      "action": "Set cover image path in frontmatter."
+    }
+  ],
   "warnings": [
     {
       "level": "warn",

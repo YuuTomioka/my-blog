@@ -9,6 +9,8 @@
     "export:diff": "node scripts/export-from-vault.mjs",
     "index": "node scripts/build-index.mjs",
     "quality:strict": "node scripts/build-index.mjs --strict",
+    "quality:strict:extended": "node scripts/build-index.mjs --strict --strict-profile=extended",
+    "quality:strict:cover": "node scripts/build-index.mjs --strict --strict-profile=extended --strict-cover-required",
     "build:search-index": "node scripts/build-index.mjs",
     "build:all": "npm run index && npm run build",
     "publish:check": "npm run export:vault && npm run index && npm run build"

@@ -4,7 +4,7 @@ Static blog built with Next.js App Router.
 
 This repository is the public publishing boundary. Source notes live in `../my-vault`, and only `published` posts are exported into this repo.
 
-## v1.4 highlights
+## v1.6 highlights
 
 - Markdown rendering enhancements
   - Stable heading IDs for `h2/h3` (ASCII slug or `h-<hash>`)
@@ -36,7 +36,9 @@ This repository is the public publishing boundary. Source notes live in `../my-v
   - `content/reports/quality.json`
   - `content/reports/quality.md`
   - warning-focused checks (summary/cover/image path/delete candidates)
-  - optional strict gate via `--strict` (`SUMMARY_MISSING`, `IMAGE_PATH_NON_STANDARD`)
+  - strict profiles: `base` (`SUMMARY_MISSING`, `IMAGE_PATH_NON_STANDARD`) and `extended` (`+SUMMARY_TOO_SHORT`)
+  - optional new-post cover gate via `--strict-cover-required --cover-policy-date=YYYY-MM-DD`
+  - delta report (`warning_count`, `by_code`) and top 3 priority actions
 
 ## Required environment variable
 
@@ -146,7 +148,9 @@ Export rules:
 - `npm run export:diff -- --dry-run` : preview changes without writing files/state
 - `npm run export:diff -- --force-delete` : apply pending deletions
 - `npm run index` : generate posts/tags/categories/search + quality reports
-- `npm run quality:strict` : run quality check with strict failure policy
+- `npm run quality:strict` : strict profile `base`
+- `npm run quality:strict:extended` : strict profile `extended` (adds `SUMMARY_TOO_SHORT`)
+- `npm run quality:strict:cover -- --cover-policy-date=YYYY-MM-DD` : enable cover strict for new posts (created on/after date)
 - `npm run build:search-index` : run index generator (same as `npm run index`)
 - `npm run dev` : start local dev server
 - `npm run build` : production build
