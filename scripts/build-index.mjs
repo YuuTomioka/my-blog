@@ -12,6 +12,7 @@ const EXPORT_STATE_PATH = path.join(ROOT, 'content', '.export-state.json');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STRICT_FAIL_CODES = new Set(['SUMMARY_MISSING', 'IMAGE_PATH_NON_STANDARD']);
+const SEARCH_INDEX_WARN_THRESHOLD_BYTES = 262144;
 
 function parseArgs(argv) {
   return {
@@ -206,6 +207,11 @@ function loadExportStatePendingDeletes() {
 
 function writeQualityReports(warnings, totals, options = {}) {
   const strictEnabled = Boolean(options.strict);
+  const searchIndexStats = options.searchIndexStats || {
+    bytes: 0,
+    records: 0,
+    warn_threshold_bytes: SEARCH_INDEX_WARN_THRESHOLD_BYTES
+  };
   const strictFailCodes = warnings
     .map((warning) => warning.code)
     .filter((code) => STRICT_FAIL_CODES.has(code));
@@ -230,6 +236,7 @@ function writeQualityReports(warnings, totals, options = {}) {
       failed: strictFailed,
       fail_codes: Array.from(new Set(strictFailCodes))
     },
+    search_index: searchIndexStats,
     warnings
   };
 
@@ -242,6 +249,9 @@ function writeQualityReports(warnings, totals, options = {}) {
   lines.push(`- Posts scanned: ${totals.posts}`);
   lines.push(`- Warnings: ${warnings.length}`);
   lines.push(`- Strict: ${strictEnabled ? (strictFailed ? 'FAILED' : 'PASSED') : 'disabled'}`);
+  lines.push(`- Search index bytes: ${searchIndexStats.bytes}`);
+  lines.push(`- Search index records: ${searchIndexStats.records}`);
+  lines.push(`- Search index warn threshold bytes: ${searchIndexStats.warn_threshold_bytes}`);
   lines.push('');
   lines.push('## Warning counts');
   lines.push('');
@@ -362,10 +372,23 @@ async function buildIndex(options = {}) {
   fs.writeFileSync(path.join(INDEX_DIR, 'posts.json'), JSON.stringify(postsIndex, null, 2) + '\n');
   fs.writeFileSync(path.join(INDEX_DIR, 'tags.json'), JSON.stringify(tagsMap, null, 2) + '\n');
   fs.writeFileSync(path.join(INDEX_DIR, 'categories.json'), JSON.stringify(categoriesMap, null, 2) + '\n');
-  fs.writeFileSync(path.join(INDEX_DIR, 'search.json'), JSON.stringify(searchIndex, null, 2) + '\n');
+  const searchIndexPath = path.join(INDEX_DIR, 'search.json');
+  fs.writeFileSync(searchIndexPath, JSON.stringify(searchIndex, null, 2) + '\n');
 
   fs.mkdirSync(PUBLIC_INDEX_DIR, { recursive: true });
-  fs.copyFileSync(path.join(INDEX_DIR, 'search.json'), path.join(PUBLIC_INDEX_DIR, 'search.json'));
+  fs.copyFileSync(searchIndexPath, path.join(PUBLIC_INDEX_DIR, 'search.json'));
+
+  const searchIndexStats = {
+    bytes: fs.statSync(searchIndexPath).size,
+    records: searchIndex.length,
+    warn_threshold_bytes: SEARCH_INDEX_WARN_THRESHOLD_BYTES
+  };
+  if (searchIndexStats.bytes > searchIndexStats.warn_threshold_bytes) {
+    pushWarning(warnings, {
+      code: 'SEARCH_INDEX_TOO_LARGE',
+      message: `search index size is ${searchIndexStats.bytes} bytes (threshold: ${searchIndexStats.warn_threshold_bytes})`
+    });
+  }
 
   const pendingDeletes = loadExportStatePendingDeletes();
   for (const item of pendingDeletes.posts) {
@@ -384,7 +407,11 @@ async function buildIndex(options = {}) {
     });
   }
 
-  const qualityResult = writeQualityReports(warnings, { posts: posts.length }, options);
+  const qualityResult = writeQualityReports(
+    warnings,
+    { posts: posts.length },
+    { ...options, searchIndexStats }
+  );
 
   console.log(`Indexed ${posts.length} published posts.`);
   console.log(`Generated ${searchIndex.length} search records.`);

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-02T16:33:42.112Z",
+  "generated_at": "2026-03-03T15:00:31.008Z",
   "totals": {
     "posts": 2
   },
@@ -13,6 +13,11 @@
     "enabled": false,
     "failed": false,
     "fail_codes": []
+  },
+  "search_index": {
+    "bytes": 1155,
+    "records": 2,
+    "warn_threshold_bytes": 262144
   },
   "warnings": [
     {
