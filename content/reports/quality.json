@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-03-03T15:11:11.248Z",
+  "generated_at": "2026-03-05T15:56:45.599Z",
   "totals": {
-    "posts": 2
+    "posts": 12
   },
   "summary": {
-    "warning_count": 2,
+    "warning_count": 12,
     "by_code": {
-      "COVER_MISSING": 2
+      "COVER_MISSING": 12
     }
   },
   "strict": {
@@ -18,21 +18,20 @@
     "fail_codes": []
   },
   "search_index": {
-    "bytes": 1155,
-    "records": 2,
+    "bytes": 6835,
+    "records": 12,
     "warn_threshold_bytes": 262144
   },
   "delta": {
-    "warning_count": -2,
+    "warning_count": 10,
     "by_code": {
-      "SUMMARY_TOO_SHORT": -1,
-      "COVER_MISSING": -1
+      "COVER_MISSING": 10
     }
   },
   "priority_actions": [
     {
       "code": "COVER_MISSING",
-      "count": 2,
+      "count": 12,
       "action": "Set cover image path in frontmatter."
     }
   ],
@@ -41,6 +40,66 @@
       "level": "warn",
       "code": "COVER_MISSING",
       "slug": "getting-started-static-blog",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-01",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-02",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-03",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-04",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-05",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-06",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-07",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-08",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-09",
+      "message": "cover is not set"
+    },
+    {
+      "level": "warn",
+      "code": "COVER_MISSING",
+      "slug": "pagination-sample-10",
       "message": "cover is not set"
     },
     {

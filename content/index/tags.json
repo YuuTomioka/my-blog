@@ -4,10 +4,44 @@
   ],
   "blog": [
     "getting-started-static-blog",
+    "pagination-sample-01",
+    "pagination-sample-02",
+    "pagination-sample-03",
+    "pagination-sample-04",
+    "pagination-sample-05",
+    "pagination-sample-06",
+    "pagination-sample-07",
+    "pagination-sample-08",
+    "pagination-sample-09",
+    "pagination-sample-10",
     "publishing-boundary"
   ],
   "nextjs": [
     "getting-started-static-blog"
+  ],
+  "pagination": [
+    "pagination-sample-01",
+    "pagination-sample-02",
+    "pagination-sample-03",
+    "pagination-sample-04",
+    "pagination-sample-05",
+    "pagination-sample-06",
+    "pagination-sample-07",
+    "pagination-sample-08",
+    "pagination-sample-09",
+    "pagination-sample-10"
+  ],
+  "test": [
+    "pagination-sample-01",
+    "pagination-sample-02",
+    "pagination-sample-03",
+    "pagination-sample-04",
+    "pagination-sample-05",
+    "pagination-sample-06",
+    "pagination-sample-07",
+    "pagination-sample-08",
+    "pagination-sample-09",
+    "pagination-sample-10"
   ],
   "architecture": [
     "publishing-boundary"
