@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import PostList from 'components/blog/PostList';
+import PostPager from 'components/blog/PostPager';
+import Breadcrumbs from 'components/ui/Breadcrumbs';
 import { buildMarkdownExcerpt, renderMarkdown } from 'lib/markdown/render';
 import { getAdjacentPosts, getAllPosts, getPostBySlug, getRelatedPosts } from 'lib/posts';
 
@@ -104,6 +107,7 @@ export default async function PostPage({ params }) {
 
   return (
     <article className="stack-lg">
+      <Breadcrumbs items={[{ label: 'Posts', href: '/' }, { label: post.title }]} />
       <h1>{post.title}</h1>
       {toc.length >= 2 ? (
         <nav className="toc-card" aria-label="Table of contents">
@@ -144,42 +148,11 @@ export default async function PostPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {(next || previous) ? (
-        <nav className="adjacent-grid" aria-label="Adjacent posts">
-          <div className="adjacent-card">
-            {next ? (
-              <>
-                <p className="adjacent-label">Next (newer)</p>
-                <Link href={`/posts/${next.slug}/`}>{next.title}</Link>
-              </>
-            ) : null}
-          </div>
-          <div className="adjacent-card">
-            {previous ? (
-              <>
-                <p className="adjacent-label">Previous (older)</p>
-                <Link href={`/posts/${previous.slug}/`}>{previous.title}</Link>
-              </>
-            ) : null}
-          </div>
-        </nav>
-      ) : null}
+      <PostPager previous={previous} next={next} />
       {relatedPosts.length > 0 ? (
         <section className="stack-lg">
           <h2>Related Posts</h2>
-          <ul className="post-list compact">
-            {relatedPosts.map((related) => (
-              <li key={related.slug} className="post-card">
-                <h3 className="post-card-title">
-                  <Link href={`/posts/${related.slug}/`}>{related.title}</Link>
-                </h3>
-                <p className="post-meta">
-                  <span>Published: {related.created_at}</span>
-                  {related.updated_at ? <span>Updated: {related.updated_at}</span> : null}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <PostList posts={relatedPosts} compact />
         </section>
       ) : null}
     </article>

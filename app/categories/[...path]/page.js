@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import PostList from 'components/blog/PostList';
+import Breadcrumbs from 'components/ui/Breadcrumbs';
 import { notFound } from 'next/navigation';
 import { getAllCategories, getPostsByCategoryPath } from 'lib/posts';
 
@@ -27,20 +28,9 @@ export default async function CategoryPage({ params }) {
 
   return (
     <main className="stack-lg">
+      <Breadcrumbs items={[{ label: 'Categories', href: '/categories/' }, { label: categoryKey }]} />
       <h1>Category: {categoryKey}</h1>
-      <ul className="post-list compact">
-        {posts.map((post) => (
-          <li key={post.slug} className="post-card">
-            <h2 className="post-card-title">
-              <Link href={`/posts/${post.slug}/`}>{post.title}</Link>
-            </h2>
-            <p className="post-meta">
-              <span>Published: {post.created_at}</span>
-              {post.updated_at ? <span>Updated: {post.updated_at}</span> : null}
-            </p>
-          </li>
-        ))}
-      </ul>
+      <PostList posts={posts} compact />
     </main>
   );
 }

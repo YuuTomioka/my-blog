@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import PostList from 'components/blog/PostList';
+import Breadcrumbs from 'components/ui/Breadcrumbs';
 import { notFound } from 'next/navigation';
 import { getAllTags, getPostsByTag } from 'lib/posts';
 
@@ -18,20 +19,9 @@ export default async function TagPage({ params }) {
 
   return (
     <section className="stack-lg">
+      <Breadcrumbs items={[{ label: 'Tags', href: '/tags/' }, { label: `#${tag}` }]} />
       <h1>Tag: {tag}</h1>
-      <ul className="post-list compact">
-        {posts.map((post) => (
-          <li key={post.slug} className="post-card">
-            <h2 className="post-card-title">
-              <Link href={`/posts/${post.slug}/`}>{post.title}</Link>
-            </h2>
-            <p className="post-meta">
-              <span>Published: {post.created_at}</span>
-              {post.updated_at ? <span>Updated: {post.updated_at}</span> : null}
-            </p>
-          </li>
-        ))}
-      </ul>
+      <PostList posts={posts} compact />
     </section>
   );
 }
